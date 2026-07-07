@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Lydklip kommer snart">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#232323"/>
+      <stop offset="100%" stop-color="#161616"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bgGrad3)"/>
+
+  <path d="M -20 380 C 150 300 250 420 400 360 C 550 300 650 400 820 340"
+        fill="none" stroke="#BC924A" stroke-width="6" opacity="0.5"/>
+  <path d="M -20 60 C 150 120 250 20 400 70 C 550 120 650 30 820 80"
+        fill="none" stroke="#292929" stroke-width="6" opacity="0.6"/>
+
+  <!-- waveform bars -->
+  <g fill="#BC924A">
+    <rect x="270" y="185" width="10" height="40" rx="5"/>
+    <rect x="292" y="160" width="10" height="90" rx="5"/>
+    <rect x="314" y="130" width="10" height="150" rx="5"/>
+    <rect x="336" y="175" width="10" height="60" rx="5"/>
+    <rect x="358" y="145" width="10" height="120" rx="5"/>
+    <rect x="380" y="110" width="10" height="190" rx="5"/>
+    <rect x="402" y="150" width="10" height="110" rx="5"/>
+    <rect x="424" y="170" width="10" height="70" rx="5"/>
+    <rect x="446" y="130" width="10" height="150" rx="5"/>
+    <rect x="468" y="165" width="10" height="80" rx="5"/>
+    <rect x="490" y="185" width="10" height="40" rx="5"/>
+  </g>
+
+  <text x="400" y="330" text-anchor="middle" font-family="'Poppins','Segoe UI',sans-serif"
+        font-size="26" letter-spacing="3" fill="#BC924A">LYDKLIP KOMMER SNART</text>
+</svg>

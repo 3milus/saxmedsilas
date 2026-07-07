@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Video kommer snart">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#232323"/>
+      <stop offset="100%" stop-color="#161616"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bgGrad2)"/>
+
+  <path d="M -20 380 C 150 300 250 420 400 360 C 550 300 650 400 820 340"
+        fill="none" stroke="#BC924A" stroke-width="6" opacity="0.5"/>
+  <path d="M -20 60 C 150 120 250 20 400 70 C 550 120 650 30 820 80"
+        fill="none" stroke="#292929" stroke-width="6" opacity="0.6"/>
+
+  <circle cx="400" cy="205" r="64" fill="none" stroke="#BC924A" stroke-width="4"/>
+  <circle cx="400" cy="205" r="52" fill="#BC924A" opacity="0.95"/>
+  <path d="M 385 180 L 425 205 L 385 230 Z" fill="#161616"/>
+
+  <text x="400" y="330" text-anchor="middle" font-family="'Poppins','Segoe UI',sans-serif"
+        font-size="26" letter-spacing="3" fill="#BC924A">VIDEO KOMMER SNART</text>
+</svg>
