@@ -21,30 +21,13 @@ if (navToggle && primaryNav) {
 }
 
 // ============================================================
-// Firebase booking form
+// Booking form (sent by email via FormSubmit.co)
 //
-// SETUP (see README.md for full instructions):
-// 1. Create a Firebase project at https://console.firebase.google.com
-// 2. Enable "Firestore Database" (production mode).
-// 3. Register a Web App in Project Settings and paste the config below.
-// 4. Set Firestore security rules to allow public "create" only
-//    (rules provided in README.md).
-// 5. Upgrade to the "Blaze" plan and install the official
-//    "Trigger Email from Firestore" extension, configured to watch
-//    the "mail" collection, so bookings trigger an email automatically.
+// The first submission triggers an activation email to Silas from
+// FormSubmit. Once he clicks "Activate", all bookings are delivered
+// to the address below. See README.md.
 // ============================================================
-const firebaseConfig = {
-  apiKey: "TODO_API_KEY",
-  authDomain: "TODO_PROJECT_ID.firebaseapp.com",
-  projectId: "TODO_PROJECT_ID",
-  storageBucket: "TODO_PROJECT_ID.appspot.com",
-  messagingSenderId: "TODO_SENDER_ID",
-  appId: "TODO_APP_ID",
-};
-
-const isFirebaseConfigured = !Object.values(firebaseConfig).some((value) =>
-  String(value).startsWith('TODO')
-);
+const BOOKING_ENDPOINT = 'https://formsubmit.co/ajax/silas.sax@live.com';
 
 const form = document.getElementById('bookingForm');
 const submitBtn = document.getElementById('submitBtn');
@@ -60,11 +43,9 @@ if (form) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    if (!isFirebaseConfigured) {
-      setStatus(
-        'Booking-formularen er ved at blive sat op. Kontakt venligst Silas direkte på telefon eller email herunder.',
-        'is-error'
-      );
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      setStatus('Udfyld venligst navn, en gyldig email og type af arrangement.', 'is-error');
       return;
     }
 
@@ -74,42 +55,28 @@ if (form) {
     setStatus('Sender din forespørgsel...', 'is-pending');
 
     try {
-      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-      const { getFirestore, collection, addDoc, serverTimestamp } = await import(
-        'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'
-      );
-
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-
-      await addDoc(collection(db, 'bookings'), {
-        name: data.name,
-        email: data.email,
-        phone: data.phone || '',
-        eventType: data.eventType,
-        eventDate: data.eventDate || '',
-        location: data.location || '',
-        message: data.message || '',
-        createdAt: serverTimestamp(),
+      const response = await fetch(BOOKING_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          _subject: `Ny booking-forespørgsel fra ${data.name}`,
+          _replyto: data.email,
+          _template: 'table',
+          _captcha: 'false',
+          Navn: data.name,
+          Email: data.email,
+          Telefon: data.phone || '-',
+          'Type af arrangement': data.eventType,
+          Dato: data.eventDate || '-',
+          Sted: data.location || '-',
+          Besked: data.message || '-',
+        }),
       });
 
-      await addDoc(collection(db, 'mail'), {
-        to: ['silas.sax@live.com'],
-        message: {
-          subject: `Ny booking-forespørgsel fra ${data.name}`,
-          text: [
-            `Navn: ${data.name}`,
-            `Email: ${data.email}`,
-            `Telefon: ${data.phone || '-'}`,
-            `Type af arrangement: ${data.eventType}`,
-            `Dato: ${data.eventDate || '-'}`,
-            `Sted: ${data.location || '-'}`,
-            '',
-            'Besked:',
-            data.message || '-',
-          ].join('\n'),
-        },
-      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || String(result.success) !== 'true') {
+        throw new Error(result.message || `HTTP ${response.status}`);
+      }
 
       form.reset();
       setStatus('Tak! Din forespørgsel er sendt. Silas vender tilbage hurtigst muligt.', 'is-success');
