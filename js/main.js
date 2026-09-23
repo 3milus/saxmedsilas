@@ -1,3 +1,5 @@
+import { isFirebaseConfigured, loadFirebase } from './firebase.js';
+
 // ============================================================
 // Mobile navigation toggle
 // ============================================================
@@ -19,6 +21,141 @@ if (navToggle && primaryNav) {
     });
   });
 }
+
+// ============================================================
+// Visitor statistics (shown on admin.html)
+//
+// Stores one anonymous event per page view / booking / media play in
+// the Firestore "events" collection. No cookies or personal data.
+// ============================================================
+const isLocalPreview = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+
+function referrerHost() {
+  try {
+    const host = new URL(document.referrer).hostname;
+    return host === location.hostname ? '' : host.slice(0, 200);
+  } catch {
+    return '';
+  }
+}
+
+function deviceType() {
+  if (window.matchMedia('(max-width: 760px)').matches) return 'mobile';
+  if (window.matchMedia('(pointer: coarse)').matches) return 'tablet';
+  return 'desktop';
+}
+
+async function trackEvent(type, item = '') {
+  if (!isFirebaseConfigured || isLocalPreview) return;
+  try {
+    const { db, fs } = await loadFirebase();
+    await fs.addDoc(fs.collection(db, 'events'), {
+      type,
+      item: item.slice(0, 100),
+      path: location.pathname.slice(0, 200),
+      referrer: referrerHost(),
+      device: deviceType(),
+      ts: fs.serverTimestamp(),
+    });
+  } catch (error) {
+    console.warn('Could not record statistics:', error);
+  }
+}
+
+trackEvent('pageview');
+
+// ============================================================
+// Photos, videos and sound clips uploaded on admin.html
+//
+// Replaces the placeholders when media has been uploaded; the
+// placeholders stay as they are otherwise.
+// ============================================================
+const aboutPhoto = document.getElementById('aboutPhoto');
+const mediaGrid = document.getElementById('mediaGrid');
+const mediaLead = document.getElementById('mediaLead');
+
+function youtubeEmbedUrl(id) {
+  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`;
+}
+
+function renderMediaCard(item) {
+  const figure = document.createElement('figure');
+  figure.className = `media-card media-card--${item.type}`;
+
+  if (item.type === 'image') {
+    const img = document.createElement('img');
+    img.src = item.url;
+    img.alt = item.title || 'Foto af Silas';
+    img.loading = 'lazy';
+    figure.append(img);
+  } else if (item.type === 'video') {
+    const video = document.createElement('video');
+    video.src = item.url;
+    video.controls = true;
+    video.preload = 'metadata';
+    video.playsInline = true;
+    video.addEventListener('play', () => trackEvent('media_play', item.title || item.id), { once: true });
+    figure.append(video);
+  } else if (item.type === 'audio') {
+    const cover = document.createElement('img');
+    cover.src = 'assets/audio-cover.svg';
+    cover.alt = '';
+    const audio = document.createElement('audio');
+    audio.src = item.url;
+    audio.controls = true;
+    audio.preload = 'none';
+    audio.addEventListener('play', () => trackEvent('media_play', item.title || item.id), { once: true });
+    figure.append(cover, audio);
+  } else if (item.type === 'youtube') {
+    const iframe = document.createElement('iframe');
+    iframe.src = youtubeEmbedUrl(item.youtubeId);
+    iframe.title = item.title || 'Video';
+    iframe.loading = 'lazy';
+    iframe.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+    iframe.allowFullscreen = true;
+    figure.append(iframe);
+  } else {
+    return null;
+  }
+
+  if (item.title) {
+    const caption = document.createElement('figcaption');
+    caption.textContent = item.title;
+    figure.append(caption);
+  }
+  return figure;
+}
+
+async function loadUploadedMedia() {
+  if (!isFirebaseConfigured) return;
+  try {
+    const { db, fs } = await loadFirebase();
+    const [aboutSnap, itemsSnap] = await Promise.all([
+      fs.getDoc(fs.doc(db, 'site', 'about')),
+      fs.getDocs(fs.query(fs.collection(db, 'mediaItems'), fs.orderBy('order'))),
+    ]);
+
+    const about = aboutSnap.data();
+    if (about?.url && aboutPhoto) {
+      aboutPhoto.src = about.url;
+      aboutPhoto.alt = 'Foto af Silas Steengaard';
+    }
+
+    const cards = itemsSnap.docs
+      .map((doc) => renderMediaCard({ id: doc.id, ...doc.data() }))
+      .filter(Boolean);
+    if (cards.length && mediaGrid) {
+      mediaGrid.replaceChildren(...cards);
+      if (mediaLead) {
+        mediaLead.textContent = 'Et udpluk af videoer, lydklip og billeder fra tidligere spillejobs.';
+      }
+    }
+  } catch (error) {
+    console.warn('Could not load uploaded media:', error);
+  }
+}
+
+loadUploadedMedia();
 
 // ============================================================
 // Booking form (sent by email via FormSubmit.co)
@@ -79,6 +216,7 @@ if (form) {
       }
 
       form.reset();
+      trackEvent('booking');
       setStatus('Tak! Din forespørgsel er sendt. Silas vender tilbage hurtigst muligt.', 'is-success');
     } catch (error) {
       console.error('Booking submission failed:', error);

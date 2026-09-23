@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Deploy with `firebase deploy --only storage`, or paste into
+// Firebase Console > Storage > Rules. See README.md.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+
+    // Uploaded photos, videos and sound clips: public to view,
+    // only admins may upload (max 500 MB per file) or delete.
+    match /media/{fileName} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.size < 500 * 1024 * 1024
+        && request.resource.contentType.matches('(image|video|audio)/.*');
+      allow delete: if isAdmin();
+    }
+  }
+}

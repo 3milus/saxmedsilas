@@ -322,7 +322,22 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden;
   border: 1px solid rgba(188, 146, 74, 0.35);
 }
-.media-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.media-card img,
+.media-card video,
+.media-card iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 0;
+}
+.media-card video { background: #000; object-fit: contain; }
+.media-card audio {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem 0;
+  background: var(--charcoal-soft);
+}
 .media-card figcaption {
   padding: 0.9rem 1.1rem;
   background: var(--charcoal-soft);

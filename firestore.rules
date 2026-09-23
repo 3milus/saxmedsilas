@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Deploy with `firebase deploy --only firestore:rules`, or paste into
+// Firebase Console > Firestore Database > Rules. See README.md.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // An admin is a signed-in user whose UID has a document in /admins.
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Admin list: created by hand in the Firebase Console.
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Anonymous visitor statistics: anyone may add a well-formed event,
+    // only admins may read them.
+    match /events/{eventId} {
+      allow create: if request.resource.data.keys().hasOnly(['type', 'item', 'path', 'referrer', 'device', 'ts'])
+        && request.resource.data.type in ['pageview', 'booking', 'media_play']
+        && request.resource.data.item is string && request.resource.data.item.size() <= 100
+        && request.resource.data.path is string && request.resource.data.path.size() <= 200
+        && request.resource.data.referrer is string && request.resource.data.referrer.size() <= 200
+        && request.resource.data.device in ['mobile', 'tablet', 'desktop']
+        && request.resource.data.ts == request.time;
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+
+    // Site content shown on the public page.
+    match /site/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /mediaItems/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
