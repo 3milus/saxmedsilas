@@ -434,6 +434,14 @@ select {
   background-repeat: no-repeat;
 }
 
+/* Dark native popups (dropdown list, date picker) — on Windows the open
+   <select> list is otherwise white, with our light text on top. */
+.booking-form { color-scheme: dark; }
+select option {
+  background: var(--charcoal-soft);
+  color: var(--text-light);
+}
+
 textarea { resize: vertical; min-height: 110px; }
 
 .form-status {
