@@ -1,4 +1,5 @@
 import { isFirebaseConfigured, loadFirebase, sdkUrl } from './firebase.js';
+import { cacheTexts, readElementText } from './site-texts.js';
 
 // ============================================================
 // Helpers
@@ -70,6 +71,7 @@ async function init() {
   setupTabs();
   setupStats({ db, fs });
   setupMedia({ db, fs, storage, storageSdk });
+  setupTexts({ db, fs });
 }
 
 // ============================================================
@@ -148,7 +150,7 @@ function setupAuth({ auth, authSdk, db, fs }) {
 }
 
 function setupTabs() {
-  const tabs = [['statsTabBtn', 'statsTab'], ['mediaTabBtn', 'mediaTab']];
+  const tabs = [['statsTabBtn', 'statsTab'], ['mediaTabBtn', 'mediaTab'], ['textsTabBtn', 'textsTab']];
   tabs.forEach(([buttonId]) => {
     $(buttonId).addEventListener('click', () => {
       tabs.forEach(([otherButtonId, panelId]) => {
@@ -559,4 +561,138 @@ function setupMedia({ db, fs, storage, storageSdk }) {
 
   const previousReady = onAdminReady;
   onAdminReady = () => { previousReady(); loadMedia(); };
+}
+
+// ============================================================
+// Texts on the front page
+//
+// The editable fields and their original wording come from the
+// data-edit attributes in index.html, so new texts only need marking
+// up there. Only texts that differ from the original are saved.
+// ============================================================
+const TEXT_GROUPS = {
+  hero: 'Toppen af siden',
+  about: 'Om Silas',
+  media: 'Hør & se',
+  events: 'Anledninger',
+  event: 'Anledninger – kort',
+  book: 'Book Silas',
+};
+
+function textGroupOf(key) {
+  const prefix = key.match(/^[a-z]+/)[0];
+  return TEXT_GROUPS[prefix] || 'Andet';
+}
+
+function setupTexts({ db, fs }) {
+  const form = $('textsForm');
+  const container = $('textsFields');
+  let fields = [];
+  let hasUnsavedChanges = false;
+
+  const fieldValue = (field) => field.input.value.trim();
+  const isChanged = (field) => fieldValue(field) !== '' && fieldValue(field) !== field.original;
+
+  function refreshField(field) {
+    field.row.classList.toggle('is-changed', isChanged(field));
+    field.resetBtn.hidden = !isChanged(field);
+    if (field.input.tagName === 'TEXTAREA') {
+      field.input.rows = Math.min(14, Math.max(2, Math.ceil(field.input.value.length / 70) + field.input.value.split('\n').length - 1));
+    }
+  }
+
+  function renderFields(originals, saved) {
+    const groups = new Map();
+    fields = originals.map((original) => {
+      const id = `text-${original.key}`;
+      const input = original.multiline
+        ? el('textarea', { id })
+        : el('input', { id, type: 'text' });
+      input.value = saved[original.key]?.trim() ? saved[original.key] : original.text;
+      input.placeholder = original.text;
+
+      const resetBtn = el('button', { type: 'button', className: 'link-btn', textContent: 'Nulstil' });
+      const row = el('div', { className: 'text-field' },
+        el('div', { className: 'text-field-head' }, el('label', { htmlFor: id, textContent: original.label }), resetBtn),
+        input);
+
+      const field = { ...original, original: original.text, input, row, resetBtn };
+      input.addEventListener('input', () => {
+        hasUnsavedChanges = true;
+        refreshField(field);
+      });
+      resetBtn.addEventListener('click', () => {
+        input.value = field.original;
+        hasUnsavedChanges = true;
+        refreshField(field);
+        input.focus();
+      });
+
+      const group = textGroupOf(original.key);
+      if (!groups.has(group)) groups.set(group, el('div', { className: 'panel' }, el('h2', { textContent: group })));
+      groups.get(group).append(row);
+      return field;
+    });
+
+    container.replaceChildren(...groups.values());
+    fields.forEach(refreshField);
+  }
+
+  async function loadTexts() {
+    const loadStatus = $('textsLoadStatus');
+    setStatus(loadStatus, 'Henter tekster…', 'is-pending');
+    try {
+      const [html, textsSnap] = await Promise.all([
+        fetch('./index.html', { cache: 'no-cache' }).then((response) => {
+          if (!response.ok) throw new Error(`index.html: HTTP ${response.status}`);
+          return response.text();
+        }),
+        fs.getDoc(fs.doc(db, 'site', 'texts')),
+      ]);
+      const page = new DOMParser().parseFromString(html, 'text/html');
+      const originals = [...page.querySelectorAll('[data-edit]')].map((node) => ({
+        key: node.dataset.edit,
+        label: node.dataset.editLabel || node.dataset.edit,
+        text: readElementText(node),
+        multiline: !node.matches('h1, h2, h3, .kicker'),
+      }));
+      renderFields(originals, textsSnap.data()?.values || {});
+      hasUnsavedChanges = false;
+      setStatus(loadStatus, '');
+    } catch (error) {
+      console.error(error);
+      setStatus(loadStatus, `Kunne ikke hente teksterne. ${errorText(error)}`, 'is-error');
+    }
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const status = $('textsStatus');
+    const values = Object.fromEntries(fields.filter(isChanged).map((field) => [field.key, fieldValue(field)]));
+
+    $('saveTextsBtn').disabled = true;
+    setStatus(status, 'Gemmer…', 'is-pending');
+    try {
+      await fs.setDoc(fs.doc(db, 'site', 'texts'), { values, updatedAt: fs.serverTimestamp() });
+      cacheTexts(values);
+      hasUnsavedChanges = false;
+      fields.forEach((field) => {
+        if (!fieldValue(field)) field.input.value = field.original;
+        refreshField(field);
+      });
+      setStatus(status, 'Gemt – teksterne er opdateret på forsiden.', 'is-success');
+    } catch (error) {
+      console.error(error);
+      setStatus(status, errorText(error), 'is-error');
+    } finally {
+      $('saveTextsBtn').disabled = false;
+    }
+  });
+
+  window.addEventListener('beforeunload', (event) => {
+    if (hasUnsavedChanges) event.preventDefault();
+  });
+
+  const previousReady = onAdminReady;
+  onAdminReady = () => { previousReady(); loadTexts(); };
 }

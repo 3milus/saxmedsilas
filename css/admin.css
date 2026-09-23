@@ -332,3 +332,34 @@ progress {
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
 .icon-btn--danger { color: #e0a1a1; }
 .icon-btn--danger.is-confirming { background: #7a2e2e; color: var(--white); border-color: #7a2e2e; }
+
+/* Texts editor */
+.texts-intro { max-width: 70ch; margin-top: 0; }
+.text-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.text-field + .text-field { margin-top: 1.1rem; }
+.text-field-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.text-field-head .link-btn { font-size: 0.8rem; }
+.text-field.is-changed label::after {
+  content: 'Ændret';
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--charcoal);
+  background: var(--gold-light);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+}
+.text-field textarea { min-height: 0; field-sizing: content; max-height: 24rem; }
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 1rem;
+  padding: 0.9rem 0 calc(0.9rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--charcoal) 75%, rgba(28, 28, 28, 0));
+}
+.save-bar .form-status { flex: 1 1 12rem; text-align: right; }

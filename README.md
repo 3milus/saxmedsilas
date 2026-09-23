@@ -16,6 +16,7 @@ css/admin.css         Ekstra styling til admin-siden
 js/main.js            Mobilmenu, booking-formular, statistik og indlæsning af medier
 js/admin.js           Admin-sidens logik
 js/firebase.js        Firebase-konfiguration (delt af begge sider)
+js/site-texts.js      Læs/skriv de redigerbare tekster (delt af begge sider)
 firestore.rules       Sikkerhedsregler for databasen
 storage.rules         Sikkerhedsregler for uploadede filer
 firebase.json         Peger Firebase CLI på de to regel-filer
@@ -101,6 +102,12 @@ uploade/ændre/slette medier.
 - **Billeder, video & lyd:** skift fotoet i "Om Silas", tilføj filer eller
   YouTube-links til "Hør & se", ret titler, ændr rækkefølge og slet.
   Ændringer ses på forsiden ved næste sideindlæsning.
+- **Tekster:** ret overskrifter og brødtekster på forsiden. Kun tekster, der
+  afviger fra originalen, gemmes (i Firestore `site/texts`); "Nulstil" eller
+  et tomt felt bruger den oprindelige tekst fra `index.html`.
+  Nye tekster gøres redigerbare ved at give elementet i `index.html` en
+  `data-edit="unik-noegle"` og `data-edit-label="Navn i admin"` (brug
+  `data-edit-type="paragraphs"` på en `<div>` med flere `<p>`).
 
 ## 4. Host på GitHub Pages
 

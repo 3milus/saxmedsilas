@@ -69,6 +69,7 @@
       <nav class="tabs" role="tablist" aria-label="Admin">
         <button type="button" class="tab is-active" role="tab" aria-selected="true" aria-controls="statsTab" id="statsTabBtn">Statistik</button>
         <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="mediaTab" id="mediaTabBtn">Billeder, video &amp; lyd</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="textsTab" id="textsTabBtn">Tekster</button>
       </nav>
 
       <!-- STATISTICS -->
@@ -198,6 +199,27 @@
           <ul class="media-list" id="mediaList"></ul>
           <p class="form-status" id="listStatus" role="status" aria-live="polite"></p>
         </div>
+      </section>
+
+      <!-- TEXTS -->
+      <section id="textsTab" role="tabpanel" aria-labelledby="textsTabBtn" hidden>
+        <div class="toolbar">
+          <h1>Tekster på forsiden</h1>
+          <a href="./" class="link-btn" target="_blank" rel="noopener">Se forsiden ↗</a>
+        </div>
+        <p class="muted texts-intro">
+          Ret teksterne, og tryk <strong>Gem tekster</strong>. Lad et felt stå tomt eller tryk
+          <em>Nulstil</em> for at bruge den oprindelige tekst. I brødtekst starter en tom linje et nyt afsnit.
+        </p>
+        <p class="form-status" id="textsLoadStatus" role="status" aria-live="polite"></p>
+
+        <form id="textsForm" novalidate>
+          <div id="textsFields"></div>
+          <div class="save-bar">
+            <p class="form-status" id="textsStatus" role="status" aria-live="polite"></p>
+            <button type="submit" class="btn btn--primary" id="saveTextsBtn">Gem tekster</button>
+          </div>
+        </form>
       </section>
     </div>
   </main>

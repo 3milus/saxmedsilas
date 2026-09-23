@@ -1,4 +1,5 @@
 import { isFirebaseConfigured, loadFirebase } from './firebase.js';
+import { cacheTexts, readCachedTexts, readElementText, writeElementText } from './site-texts.js';
 
 // ============================================================
 // Mobile navigation toggle
@@ -65,14 +66,26 @@ async function trackEvent(type, item = '') {
 trackEvent('pageview');
 
 // ============================================================
-// Photos, videos and sound clips uploaded on admin.html
+// Texts, photos, videos and sound clips edited on admin.html
 //
-// Replaces the placeholders when media has been uploaded; the
-// placeholders stay as they are otherwise.
+// Custom texts replace the original wording in index.html, and uploaded
+// media replaces the placeholders. Anything not changed stays as it is.
 // ============================================================
+const editableElements = [...document.querySelectorAll('[data-edit]')];
+const originalTexts = Object.fromEntries(editableElements.map((el) => [el.dataset.edit, readElementText(el)]));
+
+function applyTexts(values) {
+  editableElements.forEach((el) => {
+    const custom = values[el.dataset.edit];
+    const text = typeof custom === 'string' && custom.trim() ? custom : originalTexts[el.dataset.edit];
+    if (readElementText(el) !== text) writeElementText(el, text);
+  });
+}
+
+applyTexts(readCachedTexts());
+
 const aboutPhoto = document.getElementById('aboutPhoto');
 const mediaGrid = document.getElementById('mediaGrid');
-const mediaLead = document.getElementById('mediaLead');
 
 function youtubeEmbedUrl(id) {
   return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`;
@@ -126,14 +139,19 @@ function renderMediaCard(item) {
   return figure;
 }
 
-async function loadUploadedMedia() {
+async function loadSiteContent() {
   if (!isFirebaseConfigured) return;
   try {
     const { db, fs } = await loadFirebase();
-    const [aboutSnap, itemsSnap] = await Promise.all([
+    const [textsSnap, aboutSnap, itemsSnap] = await Promise.all([
+      fs.getDoc(fs.doc(db, 'site', 'texts')),
       fs.getDoc(fs.doc(db, 'site', 'about')),
       fs.getDocs(fs.query(fs.collection(db, 'mediaItems'), fs.orderBy('order'))),
     ]);
+
+    const texts = textsSnap.data()?.values || {};
+    applyTexts(texts);
+    cacheTexts(texts);
 
     const about = aboutSnap.data();
     if (about?.url && aboutPhoto) {
@@ -146,16 +164,13 @@ async function loadUploadedMedia() {
       .filter(Boolean);
     if (cards.length && mediaGrid) {
       mediaGrid.replaceChildren(...cards);
-      if (mediaLead) {
-        mediaLead.textContent = 'Et udpluk af videoer, lydklip og billeder fra tidligere spillejobs.';
-      }
     }
   } catch (error) {
-    console.warn('Could not load uploaded media:', error);
+    console.warn('Could not load texts and media:', error);
   }
 }
 
-loadUploadedMedia();
+loadSiteContent();
 
 // ============================================================
 // Booking form (sent by email via FormSubmit.co)
