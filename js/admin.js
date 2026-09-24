@@ -1,5 +1,6 @@
 import { isFirebaseConfigured, loadFirebase, sdkUrl } from './firebase.js';
 import { cacheTexts, readElementText } from './site-texts.js';
+import { hasOwnDeviceChoice, isOwnDevice, setOwnDevice } from './own-device.js';
 
 // ============================================================
 // Helpers
@@ -168,10 +169,24 @@ function setupTabs() {
 // ============================================================
 const DEVICE_LABELS = { mobile: 'Mobil', tablet: 'Tablet', desktop: 'Computer' };
 
+// Which visits to show: real visitors, the admins' own devices, or both.
+const AUDIENCE_FILTERS = {
+  visitors: (event) => !event.internal,
+  own: (event) => event.internal === true,
+  all: () => true,
+};
+
 function setupStats({ db, fs }) {
   const statsStatus = $('statsStatus');
   let rangeDays = 30;
+  let audience = 'visitors';
+  let loaded = null;
   let requestId = 0;
+
+  function render() {
+    if (!loaded) return;
+    renderStats(loaded.events.filter(AUDIENCE_FILTERS[audience]), loaded.since, loaded.rangeDays);
+  }
 
   async function loadStats() {
     const thisRequest = ++requestId;
@@ -187,7 +202,8 @@ function setupStats({ db, fs }) {
         fs.orderBy('ts')
       ));
       if (thisRequest !== requestId) return;
-      renderStats(snap.docs.map((doc) => doc.data()).filter((event) => event.ts), since, rangeDays);
+      loaded = { events: snap.docs.map((doc) => doc.data()).filter((event) => event.ts), since, rangeDays };
+      render();
       setStatus(statsStatus, '');
     } catch (error) {
       if (thisRequest !== requestId) return;
@@ -204,8 +220,39 @@ function setupStats({ db, fs }) {
     loadStats();
   });
 
+  $('audiencePicker').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-audience]');
+    if (!button) return;
+    $('audiencePicker').querySelectorAll('button').forEach((b) => b.classList.toggle('is-active', b === button));
+    audience = button.dataset.audience;
+    render();
+  });
+
+  // --- This device: counted as the admins' own visits or not ---
+  function renderOwnDevice() {
+    const own = isOwnDevice();
+    $('ownDeviceText').textContent = own
+      ? 'Dine besøg på forsiden fra denne browser tælles som “Egne besøg” og holdes adskilt fra de rigtige besøgende.'
+      : 'Besøg fra denne browser tælles med som almindelige besøgende.';
+    $('ownDeviceBtn').textContent = own ? 'Tæl som almindelig besøgende' : 'Marker som egen enhed';
+  }
+
+  $('ownDeviceBtn').addEventListener('click', () => {
+    if (!setOwnDevice(!isOwnDevice())) {
+      setStatus(statsStatus, 'Browseren tillader ikke at gemme indstillingen (privat vindue?).', 'is-error');
+      return;
+    }
+    renderOwnDevice();
+  });
+
   const previousReady = onAdminReady;
-  onAdminReady = () => { previousReady(); loadStats(); };
+  onAdminReady = () => {
+    previousReady();
+    // Logging in marks the browser as an own device, unless it was unmarked by hand.
+    if (!hasOwnDeviceChoice()) setOwnDevice(true);
+    renderOwnDevice();
+    loadStats();
+  };
 }
 
 function renderStats(events, since, rangeDays) {

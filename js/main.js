@@ -1,4 +1,5 @@
 import { isFirebaseConfigured, loadFirebase } from './firebase.js';
+import { isOwnDevice } from './own-device.js';
 import { cacheTexts, readCachedTexts, readElementText, writeElementText } from './site-texts.js';
 
 // ============================================================
@@ -28,6 +29,7 @@ if (navToggle && primaryNav) {
 //
 // Stores one anonymous event per page view / booking / media play in
 // the Firestore "events" collection. No cookies or personal data.
+// Visits from the admins' own devices are flagged "internal".
 // ============================================================
 const isLocalPreview = ['localhost', '127.0.0.1', ''].includes(location.hostname);
 
@@ -56,6 +58,7 @@ async function trackEvent(type, item = '') {
       path: location.pathname.slice(0, 200),
       referrer: referrerHost(),
       device: deviceType(),
+      internal: isOwnDevice(),
       ts: fs.serverTimestamp(),
     });
   } catch (error) {

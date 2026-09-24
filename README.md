@@ -17,6 +17,7 @@ js/main.js            Mobilmenu, booking-formular, statistik og indlæsning af m
 js/admin.js           Admin-sidens logik
 js/firebase.js        Firebase-konfiguration (delt af begge sider)
 js/site-texts.js      Læs/skriv de redigerbare tekster (delt af begge sider)
+js/own-device.js      Markering af admins' egne enheder (delt af begge sider)
 firestore.rules       Sikkerhedsregler for databasen
 storage.rules         Sikkerhedsregler for uploadede filer
 firebase.json         Peger Firebase CLI på de to regel-filer
@@ -57,6 +58,12 @@ af video/lyd: tidspunkt, side, hvilken hjemmeside besøgende kom fra, og om
 det er mobil/tablet/computer. Ingen cookies, IP-adresser eller
 personoplysninger – derfor kræves der ikke et cookie-banner.
 Besøg fra `localhost` tælles ikke med.
+
+**Egne besøg:** En browser, der har været logget ind på admin-siden, bliver
+markeret som "egen enhed" (gemt lokalt i browseren). Besøg derfra gemmes med
+`internal: true`, og statistikken kan vise *Besøgende*, *Egne besøg* eller
+*Alle*. Markeringen kan slås til/fra under "Denne enhed" på statistik-fanen.
+Log ind én gang på hver enhed (pc, telefon), du vil have markeret.
 
 ### Opsætning (én gang)
 

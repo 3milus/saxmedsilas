@@ -20,7 +20,10 @@ service cloud.firestore {
     // Anonymous visitor statistics: anyone may add a well-formed event,
     // only admins may read them.
     match /events/{eventId} {
-      allow create: if request.resource.data.keys().hasOnly(['type', 'item', 'path', 'referrer', 'device', 'ts'])
+      // "internal" marks visits from the admins' own devices (optional, so
+      // pages cached from before it was added still record visits).
+      allow create: if request.resource.data.keys().hasOnly(['type', 'item', 'path', 'referrer', 'device', 'internal', 'ts'])
+        && (!('internal' in request.resource.data) || request.resource.data.internal is bool)
         && request.resource.data.type in ['pageview', 'booking', 'media_play']
         && request.resource.data.item is string && request.resource.data.item.size() <= 100
         && request.resource.data.path is string && request.resource.data.path.size() <= 200

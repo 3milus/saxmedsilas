@@ -363,3 +363,16 @@ progress {
   background: linear-gradient(to top, var(--charcoal) 75%, rgba(28, 28, 28, 0));
 }
 .save-bar .form-status { flex: 1 1 12rem; text-align: right; }
+
+/* Statistics filters & own-device panel */
+.toolbar-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.own-device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.own-device h2 { margin-bottom: 0.25rem; }
+.own-device p { margin: 0; max-width: 60ch; font-size: 0.9rem; }
