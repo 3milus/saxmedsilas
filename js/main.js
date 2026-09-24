@@ -91,16 +91,47 @@ function youtubeEmbedUrl(id) {
   return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`;
 }
 
+// Full-size view of a photo, opened by clicking it in "Hør & se".
+let lightbox;
+
+function openLightbox(src, alt) {
+  if (!lightbox) {
+    lightbox = document.createElement('dialog');
+    lightbox.className = 'lightbox';
+    lightbox.setAttribute('aria-label', 'Billede i fuld størrelse');
+    const closeBtn = Object.assign(document.createElement('button'), {
+      type: 'button', className: 'lightbox-close', textContent: '×',
+    });
+    closeBtn.setAttribute('aria-label', 'Luk');
+    lightbox.append(closeBtn, document.createElement('img'));
+    lightbox.addEventListener('click', () => lightbox.close());
+    document.body.append(lightbox);
+  }
+  const img = lightbox.querySelector('img');
+  img.src = src;
+  img.alt = alt;
+  lightbox.showModal();
+}
+
 function renderMediaCard(item) {
   const figure = document.createElement('figure');
   figure.className = `media-card media-card--${item.type}`;
 
   if (item.type === 'image') {
+    // Whole image, letterboxed on a blurred copy of itself so any shape fits the 16:9 card.
+    const frame = document.createElement('button');
+    frame.type = 'button';
+    frame.className = 'media-frame';
+    const absoluteUrl = new URL(item.url, location.href).href;
+    frame.style.setProperty('--media-bg', `url("${absoluteUrl.replace(/"/g, '%22')}")`);
+    frame.setAttribute('aria-label', `Vis billedet i fuld størrelse${item.title ? `: ${item.title}` : ''}`);
     const img = document.createElement('img');
     img.src = item.url;
     img.alt = item.title || 'Foto af Silas';
     img.loading = 'lazy';
-    figure.append(img);
+    frame.append(img);
+    frame.addEventListener('click', () => openLightbox(item.url, img.alt));
+    figure.append(frame);
   } else if (item.type === 'video') {
     const video = document.createElement('video');
     video.src = item.url;
@@ -125,7 +156,6 @@ function renderMediaCard(item) {
     iframe.title = item.title || 'Video';
     iframe.loading = 'lazy';
     iframe.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-    iframe.allowFullscreen = true;
     figure.append(iframe);
   } else {
     return null;
