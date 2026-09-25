@@ -94,6 +94,20 @@ function youtubeEmbedUrl(id) {
   return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`;
 }
 
+// Optimised videos come in 1080p (url) and 720p (urlSd). Phones, slow
+// connections and data-saver mode get 720p; everyone else gets 1080p.
+function pickVideoSource(item) {
+  if (!item.urlSd) return item.url;
+  const connection = navigator.connection;
+  const slowConnection = connection && (
+    connection.saveData
+    || /2g|3g/.test(connection.effectiveType || '')
+    || (connection.downlink > 0 && connection.downlink < 8)
+  );
+  const smallScreen = window.matchMedia('(max-width: 900px)').matches;
+  return slowConnection || smallScreen ? item.urlSd : item.url;
+}
+
 // Full-size view of a photo, opened by clicking it in "Hør & se".
 let lightbox;
 
@@ -137,9 +151,11 @@ function renderMediaCard(item) {
     figure.append(frame);
   } else if (item.type === 'video') {
     const video = document.createElement('video');
-    video.src = item.url;
+    video.src = pickVideoSource(item);
     video.controls = true;
-    video.preload = 'metadata';
+    // With a cover image nothing is downloaded until the visitor presses play.
+    if (item.poster) video.poster = item.poster;
+    video.preload = item.poster ? 'none' : 'metadata';
     video.playsInline = true;
     video.addEventListener('play', () => trackEvent('media_play', item.title || item.id), { once: true });
     figure.append(video);

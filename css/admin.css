@@ -376,3 +376,8 @@ progress {
 }
 .own-device h2 { margin-bottom: 0.25rem; }
 .own-device p { margin: 0; max-width: 60ch; font-size: 0.9rem; }
+
+/* Import of optimised videos */
+.import-panel summary { cursor: pointer; font-weight: 500; }
+.import-panel[open] summary { margin-bottom: 0.75rem; }
+.import-panel p { font-size: 0.9rem; }

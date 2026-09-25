@@ -214,6 +214,20 @@
           <ul class="media-list" id="mediaList"></ul>
           <p class="form-status" id="listStatus" role="status" aria-live="polite"></p>
         </div>
+
+        <details class="panel import-panel">
+          <summary>Importér optimerede videoer</summary>
+          <p class="muted">
+            Vælg alle filerne fra mappen med optimerede videoer (<code>…-1080.mp4</code>, <code>…-720.mp4</code>
+            og <code>…-poster.jpg</code>). De erstatter de versioner, forsiden viser; de oprindelige filer gemmes som backup.
+          </p>
+          <form id="importForm" class="admin-form" novalidate>
+            <input type="file" id="importFiles" multiple accept="video/mp4,image/jpeg">
+            <button type="submit" class="btn btn--primary">Importér</button>
+            <progress id="importProgress" max="100" value="0" hidden></progress>
+            <p class="form-status" id="importStatus" role="status" aria-live="polite"></p>
+          </form>
+        </details>
       </section>
 
       <!-- TEXTS -->

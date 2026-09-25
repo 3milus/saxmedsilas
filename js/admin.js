@@ -552,7 +552,10 @@ function setupMedia({ db, fs, storage, storageSdk }) {
     if (!window.confirm(`Slet “${item.title || TYPE_LABELS[item.type]}” fra forsiden? Det kan ikke fortrydes.`)) return;
     try {
       await fs.deleteDoc(fs.doc(db, 'mediaItems', item.id));
-      await deleteStoredFile(item.path);
+      // Optimised videos also have a 720p version, a cover image and the original.
+      for (const path of new Set([item.path, item.pathSd, item.posterPath, item.originalPath])) {
+        await deleteStoredFile(path);
+      }
       items = items.filter((i) => i.id !== item.id);
       renderList();
       setStatus($('listStatus'), 'Slettet.', 'is-success');
@@ -572,6 +575,9 @@ function setupMedia({ db, fs, storage, storageSdk }) {
   }
 
   function thumbnail(item) {
+    if (item.type === 'video' && item.poster) {
+      return el('img', { className: 'media-thumb', src: item.poster, alt: '', loading: 'lazy' });
+    }
     if (item.type === 'video') {
       return el('video', { className: 'media-thumb', src: `${item.url}#t=0.5`, muted: true, preload: 'metadata' });
     }
@@ -600,11 +606,68 @@ function setupMedia({ db, fs, storage, storageSdk }) {
       return el('li', { className: 'media-row' },
         thumbnail(item),
         el('div', { className: 'media-info' },
-          el('span', { className: 'media-type', textContent: TYPE_LABELS[item.type] || item.type }),
+          el('span', {
+            className: 'media-type',
+            textContent: (TYPE_LABELS[item.type] || item.type) + (item.urlSd ? ' · optimeret' : ''),
+          }),
           titleInput),
         el('div', { className: 'media-actions' }, up, down, remove));
     }));
   }
+
+  // --- Import optimised versions of existing videos ---
+  // Files are named <mediaItem id>-1080.mp4, <id>-720.mp4 and <id>-poster.jpg.
+  // They replace what the front page shows; the original upload is kept as a backup.
+  $('importForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const status = $('importStatus');
+    const byItem = new Map();
+    for (const file of $('importFiles').files) {
+      const match = file.name.match(/^(.+)-(1080|720|poster)\.(mp4|jpe?g)$/i);
+      const item = match && items.find((i) => i.id === match[1] && i.type === 'video');
+      if (!item) continue;
+      if (!byItem.has(item)) byItem.set(item, {});
+      byItem.get(item)[match[2].toLowerCase()] = file;
+    }
+    const complete = [...byItem].filter(([, files]) => files['1080'] && files['720'] && files.poster);
+    if (!complete.length) {
+      setStatus(status, 'Ingen filer passede til videoerne på listen. Vælg alle filerne fra mappen med optimerede videoer.', 'is-error');
+      return;
+    }
+
+    event.submitter.disabled = true;
+    let done = 0;
+    try {
+      for (const [item, files] of complete) {
+        setStatus(status, `Uploader “${item.title || 'video'}” (${done + 1} af ${complete.length})…`, 'is-pending');
+        const hd = await uploadFile(files['1080'], $('importProgress'));
+        const sd = await uploadFile(files['720'], $('importProgress'));
+        const poster = await uploadFile(files.poster, $('importProgress'));
+        const update = {
+          url: hd.url, path: hd.path,
+          urlSd: sd.url, pathSd: sd.path,
+          poster: poster.url, posterPath: poster.path,
+          // Keep the very first upload as the backup, also if this is run again.
+          originalUrl: item.originalUrl || item.url,
+          originalPath: item.originalPath || item.path,
+        };
+        const replaced = item.urlSd ? [item.path, item.pathSd, item.posterPath] : [];
+        await fs.updateDoc(fs.doc(db, 'mediaItems', item.id), update);
+        Object.assign(item, update);
+        for (const path of replaced) await deleteStoredFile(path);
+        done++;
+      }
+      renderList();
+      $('importForm').reset();
+      setStatus(status, `${done} video${done === 1 ? '' : 'er'} optimeret og vist på forsiden. Originalerne er gemt som backup.`, 'is-success');
+    } catch (error) {
+      console.error(error);
+      renderList();
+      setStatus(status, `${done} af ${complete.length} blev importeret, så stoppede det: ${errorText(error)}`, 'is-error');
+    } finally {
+      event.submitter.disabled = false;
+    }
+  });
 
   const previousReady = onAdminReady;
   onAdminReady = () => { previousReady(); loadMedia(); };

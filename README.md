@@ -109,6 +109,13 @@ uploade/ændre/slette medier.
 - **Billeder, video & lyd:** skift fotoet i "Om Silas", tilføj filer eller
   YouTube-links til "Hør & se", ret titler, ændr rækkefølge og slet.
   Ændringer ses på forsiden ved næste sideindlæsning.
+- **Optimerede videoer:** Videoer direkte fra telefonen er meget tunge
+  (ca. 10 Mbit/s) og hakker på langsomme forbindelser. De kan konverteres med
+  ffmpeg til en 1080p- og en 720p-version (`-movflags +faststart`) plus et
+  forsidebillede, navngivet `<mediaItem-id>-1080.mp4`, `<id>-720.mp4` og
+  `<id>-poster.jpg`, og importeres under "Importér optimerede videoer".
+  Forsiden viser 720p på mobil/langsomme forbindelser og 1080p ellers.
+  Den oprindelige fil bevares som backup (`originalUrl`/`originalPath`).
 - **Tekster:** ret overskrifter og brødtekster på forsiden. Kun tekster, der
   afviger fra originalen, gemmes (i Firestore `site/texts`); "Nulstil" eller
   et tomt felt bruger den oprindelige tekst fra `index.html`.
