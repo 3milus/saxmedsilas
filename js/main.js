@@ -157,6 +157,10 @@ function renderMediaCard(item) {
     if (item.poster) video.poster = item.poster;
     video.preload = item.poster ? 'none' : 'metadata';
     video.playsInline = true;
+    // Discourage casual downloading: no download button, picture-in-picture or right-click menu.
+    video.setAttribute('controlslist', 'nodownload');
+    video.disablePictureInPicture = true;
+    video.addEventListener('contextmenu', (event) => event.preventDefault());
     video.addEventListener('play', () => trackEvent('media_play', item.title || item.id), { once: true });
     figure.append(video);
   } else if (item.type === 'audio') {
